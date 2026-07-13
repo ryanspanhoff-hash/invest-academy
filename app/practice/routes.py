@@ -149,3 +149,13 @@ def progress():
 @login_required
 def api_quotes():
     return jsonify(market.get_all_quotes())
+
+
+@practice_bp.route("/api/history/<symbol>")
+@login_required
+def api_history(symbol):
+    range_key = request.args.get("range", "1m")
+    data = market.get_history(symbol, range_key)
+    if not data:
+        return jsonify({"error": "Unknown symbol or range"}), 404
+    return jsonify(data)

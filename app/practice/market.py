@@ -119,3 +119,78 @@ def portfolio_net_worth(portfolio) -> float:
         price = quote["price"] if quote else holding.avg_cost
         total += holding.quantity * price
     return round(total, 2)
+
+
+HISTORY_RANGES = {
+    "1d": {"range": "1d", "interval": "5m", "label": "1D"},
+    "1w": {"range": "5d", "interval": "30m", "label": "1W"},
+    "1m": {"range": "1mo", "interval": "1d", "label": "1M"},
+    "1y": {"range": "1y", "interval": "1wk", "label": "1Y"},
+}
+
+_history_cache = {}
+HISTORY_CACHE_TTL_SECONDS = 300
+
+
+def _fetch_real_history(symbol: str, range_key: str):
+    spec = HISTORY_RANGES[range_key]
+    try:
+        resp = requests.get(
+            f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}",
+            params={"range": spec["range"], "interval": spec["interval"]},
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        result = resp.json()["chart"]["result"][0]
+        timestamps = result["timestamp"]
+        closes = result["indicators"]["quote"][0]["close"]
+        points = [
+            {"t": t, "price": round(c, 2)}
+            for t, c in zip(timestamps, closes)
+            if c is not None
+        ]
+        if points:
+            return points
+    except (requests.RequestException, KeyError, IndexError, TypeError, ValueError):
+        pass
+    return None
+
+
+def _simulated_history(symbol: str, base_price: float, range_key: str):
+    """Deterministic simulated price series, ending at the current simulated price,
+    used whenever real historical data can't be fetched."""
+    spec = HISTORY_RANGES[range_key]
+    num_points = 60
+    span_seconds = {"1d": 86400, "1w": 7 * 86400, "1m": 30 * 86400, "1y": 365 * 86400}[range_key]
+    seed = int(hashlib.sha256(symbol.encode()).hexdigest(), 16) % 100000
+    now = time.time()
+    points = []
+    for i in range(num_points + 1):
+        t = now - span_seconds * (1 - i / num_points)
+        wave = math.sin(t / 45.0 + seed) * 0.015 + math.sin(t / 45.0 * 0.37 + seed * 0.5) * 0.01
+        drift = math.sin(t / span_seconds * math.pi + seed * 0.2) * 0.06
+        price = base_price * (1 + wave + drift)
+        points.append({"t": int(t), "price": round(max(price, 0.5), 2)})
+    return points
+
+
+def get_history(symbol: str, range_key: str) -> dict:
+    symbol = symbol.upper()
+    stock = STOCK_LOOKUP.get(symbol)
+    if not stock or range_key not in HISTORY_RANGES:
+        return None
+
+    cache_key = f"{symbol}:{range_key}"
+    cached = _history_cache.get(cache_key)
+    if cached and (time.time() - cached["ts"]) < HISTORY_CACHE_TTL_SECONDS:
+        return cached["data"]
+
+    points = _fetch_real_history(symbol, range_key)
+    live = points is not None
+    if not points:
+        points = _simulated_history(symbol, stock["base_price"], range_key)
+
+    data = {"symbol": symbol, "range": range_key, "live": live, "points": points}
+    _history_cache[cache_key] = {"ts": time.time(), "data": data}
+    return data
