@@ -24,3 +24,14 @@ class Config:
 
     STARTING_BALANCE = 1000.0
     LEVEL_STEP = 5000.0
+
+    # Cookie hardening: in-app browsers (Snapchat, Instagram, etc.) are stricter about
+    # dropping non-persistent, non-SameSite-explicit cookies than a normal browser.
+    # Secure cookies require HTTPS, which only Render's env (not local dev over
+    # plain HTTP) guarantees. Render injects RENDER=true into every service.
+    _is_production = bool(os.environ.get("RENDER"))
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = _is_production
+    REMEMBER_COOKIE_SAMESITE = "Lax"
+    REMEMBER_COOKIE_SECURE = _is_production
+    REMEMBER_COOKIE_DURATION = 60 * 60 * 24 * 365

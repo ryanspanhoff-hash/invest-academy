@@ -49,7 +49,7 @@ def signup():
         db.session.add(portfolio)
         db.session.commit()
 
-        login_user(user)
+        login_user(user, remember=True)
         flash("Welcome to Invest Academy! Your practice account starts with $1,000.", "success")
         return redirect(url_for("main.dashboard"))
 
