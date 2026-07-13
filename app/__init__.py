@@ -88,9 +88,23 @@ def _run_light_migrations():
     from sqlalchemy import inspect, text
 
     inspector = inspect(db.engine)
-    if "user" not in inspector.get_table_names():
-        return
-    columns = {c["name"] for c in inspector.get_columns("user")}
-    if "is_admin" not in columns:
-        with db.engine.begin() as conn:
-            conn.execute(text('ALTER TABLE "user" ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE'))
+    table_names = set(inspector.get_table_names())
+    is_sqlite = db.engine.url.get_backend_name() == "sqlite"
+
+    if "user" in table_names:
+        columns = {c["name"] for c in inspector.get_columns("user")}
+        if "is_admin" not in columns:
+            with db.engine.begin() as conn:
+                conn.execute(text('ALTER TABLE "user" ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE'))
+
+    # Widened for crypto tickers like "BTC-USD". SQLite doesn't enforce VARCHAR
+    # length at all, so there's nothing to migrate there — only Postgres needs this.
+    if not is_sqlite:
+        for table in ("holding", "transaction"):
+            if table not in table_names:
+                continue
+            columns = {c["name"]: c for c in inspector.get_columns(table)}
+            symbol_col = columns.get("symbol")
+            if symbol_col is not None and getattr(symbol_col["type"], "length", None) not in (None, 20):
+                with db.engine.begin() as conn:
+                    conn.execute(text(f'ALTER TABLE "{table}" ALTER COLUMN symbol TYPE VARCHAR(20)'))

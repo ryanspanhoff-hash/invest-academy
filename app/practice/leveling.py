@@ -6,6 +6,11 @@ from app.extensions import db
 
 STARTING_BALANCE = 1000.0
 LEVEL_STEP = 5000.0
+CRYPTO_UNLOCK_LEVEL = 5
+
+
+def crypto_unlocked(portfolio) -> bool:
+    return portfolio.highest_level >= CRYPTO_UNLOCK_LEVEL
 
 BADGE_NAMES = {
     1: "Rookie Investor",

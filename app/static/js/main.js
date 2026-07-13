@@ -6,7 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initTradeModal();
   initCompleteButtons();
   initChartModal();
+  initSymbolSearch();
 });
+
+function formatPrice(price) {
+  return price < 1 ? price.toFixed(6) : price.toFixed(2);
+}
 
 /* ---------- Mobile nav ---------- */
 function initNavToggle() {
@@ -93,6 +98,8 @@ function initTradeModal() {
   const symbolField = document.getElementById('tradeSymbol');
   const sideField = document.getElementById('tradeSide');
   const qtyInput = document.getElementById('tradeQty');
+  const qtyLabel = document.getElementById('tradeQtyLabel');
+  const qtyButtons = document.getElementById('qtyButtons');
   const titleEl = document.getElementById('tradeTitle');
   const priceEl = document.getElementById('tradePrice');
   const estEl = document.getElementById('tradeEstimate');
@@ -100,34 +107,84 @@ function initTradeModal() {
   const maxHint = document.getElementById('tradeMaxHint');
 
   let currentPrice = 0;
+  let currentIsCrypto = false;
 
-  openTradeModal = (side, symbol, name, price, cash, owned) => {
+  const STOCK_DELTAS = [-5, -1, 1, 5];
+  const CRYPTO_DOLLAR_DELTAS = [-50, -10, 10, 50];
+
+  openTradeModal = (side, symbol, name, price, cash, owned, isCrypto) => {
     currentPrice = parseFloat(price);
+    currentIsCrypto = !!isCrypto;
     cash = parseFloat(cash || 0);
     owned = owned || '0';
+    const unit = currentIsCrypto ? 'units' : 'shares';
 
     symbolField.value = symbol;
     sideField.value = side;
-    qtyInput.value = 1;
     form.action = side === 'buy' ? form.dataset.buyUrl : form.dataset.sellUrl;
 
+    if (currentIsCrypto) {
+      qtyInput.step = 'any';
+      qtyInput.min = '0.000001';
+      qtyInput.value = currentPrice > 0 ? Math.max(0.000001, Math.round((50 / currentPrice) * 1e6) / 1e6) : 1;
+      qtyLabel.textContent = 'Quantity (units)';
+    } else {
+      qtyInput.step = '1';
+      qtyInput.min = '1';
+      qtyInput.value = 1;
+      qtyLabel.textContent = 'Quantity (shares)';
+    }
+
     titleEl.textContent = `${side === 'buy' ? 'Buy' : 'Sell'} ${symbol}`;
-    priceEl.textContent = `${name} • $${currentPrice.toFixed(2)} / share`;
+    priceEl.textContent = `${name} • $${formatPrice(currentPrice)} / ${currentIsCrypto ? 'unit' : 'share'}`;
     submitBtn.textContent = side === 'buy' ? 'Confirm Buy' : 'Confirm Sell';
     submitBtn.className = 'btn btn-block ' + (side === 'buy' ? 'btn-primary' : 'btn-danger');
 
     maxHint.textContent = side === 'buy'
       ? `Cash available: $${cash.toFixed(2)}`
-      : `You own: ${owned} shares`;
+      : `You own: ${owned} ${unit}`;
 
+    renderQtyButtons();
     updateEstimate();
     overlay.classList.add('open');
   };
 
+  function renderQtyButtons() {
+    qtyButtons.innerHTML = '';
+    if (currentIsCrypto) {
+      CRYPTO_DOLLAR_DELTAS.forEach(dollars => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = (dollars > 0 ? '+$' : '-$') + Math.abs(dollars);
+        btn.addEventListener('click', () => {
+          const deltaQty = currentPrice > 0 ? dollars / currentPrice : 0;
+          let val = parseFloat(qtyInput.value) || 0;
+          val = Math.max(0.000001, val + deltaQty);
+          qtyInput.value = Math.round(val * 1e6) / 1e6;
+          updateEstimate();
+        });
+        qtyButtons.appendChild(btn);
+      });
+    } else {
+      STOCK_DELTAS.forEach(delta => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = (delta > 0 ? '+' : '') + delta;
+        btn.addEventListener('click', () => {
+          let val = parseFloat(qtyInput.value) || 0;
+          val = Math.max(1, val + delta);
+          qtyInput.value = val;
+          updateEstimate();
+        });
+        qtyButtons.appendChild(btn);
+      });
+    }
+  }
+
   document.querySelectorAll('[data-trade]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      openTradeModal(btn.dataset.trade, btn.dataset.symbol, btn.dataset.name, btn.dataset.price, btn.dataset.cash, btn.dataset.owned);
+      openTradeModal(btn.dataset.trade, btn.dataset.symbol, btn.dataset.name, btn.dataset.price, btn.dataset.cash, btn.dataset.owned, btn.dataset.crypto === 'true');
     });
   });
 
@@ -137,16 +194,6 @@ function initTradeModal() {
   }
   qtyInput.addEventListener('input', updateEstimate);
 
-  document.querySelectorAll('.qty-buttons button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const delta = parseInt(btn.dataset.delta, 10);
-      let val = parseFloat(qtyInput.value) || 0;
-      val = Math.max(1, val + delta);
-      qtyInput.value = val;
-      updateEstimate();
-    });
-  });
-
   function closeModal() { overlay.classList.remove('open'); }
   overlay.querySelector('.modal-close').addEventListener('click', closeModal);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
@@ -154,6 +201,8 @@ function initTradeModal() {
 }
 
 /* ---------- Stock price chart modal ---------- */
+let openChartModal = null;
+
 function initChartModal() {
   const overlay = document.getElementById('chartModal');
   if (!overlay || typeof Chart === 'undefined') return;
@@ -170,6 +219,7 @@ function initChartModal() {
   let currentSymbol = null;
   let currentName = null;
   let currentPrice = 0;
+  let currentIsCrypto = false;
   let currentRange = '1m';
   let requestToken = 0;
 
@@ -220,7 +270,7 @@ function initChartModal() {
         plugins: { legend: { display: false } },
         scales: {
           x: { display: true, ticks: { maxTicksLimit: 6, autoSkip: true }, grid: { display: false } },
-          y: { display: true, ticks: { callback: v => '$' + v }, grid: { color: '#eef1f5' } },
+          y: { display: true, ticks: { callback: v => '$' + formatPrice(v) }, grid: { color: '#eef1f5' } },
         },
         interaction: { intersect: false, mode: 'index' },
       },
@@ -238,17 +288,23 @@ function initChartModal() {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
+  openChartModal = (symbol, name, price, isCrypto) => {
+    currentSymbol = symbol;
+    currentName = name;
+    currentPrice = parseFloat(price);
+    currentIsCrypto = !!isCrypto;
+
+    titleEl.textContent = currentSymbol;
+    subtitleEl.textContent = `${currentName} • $${formatPrice(currentPrice)} / ${currentIsCrypto ? 'unit' : 'share'}`;
+    buyBtn.textContent = currentIsCrypto ? 'Buy this crypto' : 'Buy this stock';
+    overlay.classList.add('open');
+    loadRange('1m');
+  };
+
   document.querySelectorAll('[data-chart-row]').forEach(row => {
     row.addEventListener('click', (e) => {
       if (e.target.closest('.trade-btn')) return;
-      currentSymbol = row.dataset.symbol;
-      currentName = row.dataset.name;
-      currentPrice = parseFloat(row.dataset.price);
-
-      titleEl.textContent = currentSymbol;
-      subtitleEl.textContent = `${currentName} • $${currentPrice.toFixed(2)} / share`;
-      overlay.classList.add('open');
-      loadRange('1m');
+      openChartModal(row.dataset.symbol, row.dataset.name, row.dataset.price, row.dataset.crypto === 'true');
     });
   });
 
@@ -259,9 +315,7 @@ function initChartModal() {
   buyBtn.addEventListener('click', () => {
     overlay.classList.remove('open');
     if (openTradeModal) {
-      const cashRow = document.querySelector('[data-trade="buy"][data-symbol="' + currentSymbol + '"]');
-      const cash = cashRow ? cashRow.dataset.cash : 0;
-      openTradeModal('buy', currentSymbol, currentName, currentPrice, cash, null);
+      openTradeModal('buy', currentSymbol, currentName, currentPrice, window.PORTFOLIO_CASH || 0, null, currentIsCrypto);
     }
   });
 
@@ -269,6 +323,92 @@ function initChartModal() {
   overlay.querySelector('.modal-close').addEventListener('click', closeModal);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+}
+
+/* ---------- Symbol search (stocks + crypto) ---------- */
+function initSymbolSearch() {
+  const input = document.getElementById('symbolSearch');
+  const resultsBox = document.getElementById('searchResults');
+  if (!input || !resultsBox) return;
+
+  let debounceTimer = null;
+  let requestToken = 0;
+
+  input.addEventListener('input', () => {
+    const query = input.value.trim();
+    clearTimeout(debounceTimer);
+    if (!query) {
+      resultsBox.classList.remove('open');
+      resultsBox.innerHTML = '';
+      return;
+    }
+    debounceTimer = setTimeout(() => runSearch(query), 300);
+  });
+
+  input.addEventListener('focus', () => {
+    if (resultsBox.innerHTML) resultsBox.classList.add('open');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!resultsBox.contains(e.target) && e.target !== input) {
+      resultsBox.classList.remove('open');
+    }
+  });
+
+  async function runSearch(query) {
+    const token = ++requestToken;
+    try {
+      const res = await fetch(`/practice/api/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (token !== requestToken) return;
+      renderResults(data.results || []);
+    } catch (e) {
+      if (token !== requestToken) return;
+      resultsBox.innerHTML = '<div class="search-result-empty">Search failed — try again.</div>';
+      resultsBox.classList.add('open');
+    }
+  }
+
+  function renderResults(results) {
+    resultsBox.innerHTML = '';
+    if (!results.length) {
+      resultsBox.innerHTML = '<div class="search-result-empty">No matches found.</div>';
+      resultsBox.classList.add('open');
+      return;
+    }
+    results.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'search-result-row' + (r.locked ? ' locked' : '');
+      row.innerHTML = `
+        <div class="search-result-left">
+          <span class="search-result-sym">${r.symbol}</span>
+          <span class="search-result-name">${r.name}</span>
+        </div>
+        ${r.locked ? `<span class="search-result-lock">🔒 Lvl ${window.CRYPTO_UNLOCK_LEVEL}</span>` : (r.type === 'crypto' ? '<span class="tag">Crypto</span>' : '')}
+      `;
+      if (!r.locked) {
+        row.addEventListener('click', () => selectResult(r));
+      }
+      resultsBox.appendChild(row);
+    });
+    resultsBox.classList.add('open');
+  }
+
+  async function selectResult(r) {
+    resultsBox.classList.remove('open');
+    input.value = '';
+    try {
+      const res = await fetch(`/practice/api/quote/${encodeURIComponent(r.symbol)}`);
+      const quote = await res.json();
+      if (!res.ok) throw new Error(quote.error || 'Could not load quote');
+      if (openChartModal) {
+        openChartModal(quote.symbol, quote.name, quote.price, quote.is_crypto);
+      }
+    } catch (e) {
+      resultsBox.innerHTML = `<div class="search-result-empty">Couldn't load ${r.symbol} — try again.</div>`;
+      resultsBox.classList.add('open');
+    }
+  }
 }
 
 /* ---------- Learning: mark complete ---------- */

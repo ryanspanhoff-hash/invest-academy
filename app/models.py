@@ -42,7 +42,7 @@ class Portfolio(db.Model):
 class Holding(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     portfolio_id = db.Column(db.Integer, db.ForeignKey("portfolio.id"), nullable=False)
-    symbol = db.Column(db.String(10), nullable=False)
+    symbol = db.Column(db.String(20), nullable=False)
     quantity = db.Column(db.Float, default=0.0, nullable=False)
     avg_cost = db.Column(db.Float, default=0.0, nullable=False)
 
@@ -52,7 +52,7 @@ class Holding(db.Model):
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     portfolio_id = db.Column(db.Integer, db.ForeignKey("portfolio.id"), nullable=False)
-    symbol = db.Column(db.String(10), nullable=False)
+    symbol = db.Column(db.String(20), nullable=False)
     side = db.Column(db.String(4), nullable=False)  # BUY or SELL
     quantity = db.Column(db.Float, nullable=False)
     price = db.Column(db.Float, nullable=False)

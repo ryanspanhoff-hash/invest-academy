@@ -2,6 +2,11 @@
 {% block title %}Practice Trading — Invest Academy{% endblock %}
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  window.PORTFOLIO_CASH = {{ portfolio.cash }};
+  window.CRYPTO_UNLOCKED = {{ 'true' if crypto_unlocked else 'false' }};
+  window.CRYPTO_UNLOCK_LEVEL = {{ crypto_unlock_level }};
+</script>
 {% endblock %}
 {% block content %}
 <div class="container section">
@@ -38,8 +43,17 @@
     </div>
   </div>
 
+  <div class="card search-card">
+    <h2>Search Any Stock or Crypto</h2>
+    <p class="muted" style="margin-top:-8px;">Type a company or coin name — e.g. "Nvidia" or "Bitcoin".</p>
+    <div class="search-wrap">
+      <input type="text" id="symbolSearch" class="search-input" placeholder="Search by name or ticker…" autocomplete="off">
+      <div class="search-results" id="searchResults"></div>
+    </div>
+  </div>
+
   <div class="card" style="margin-bottom:24px;">
-    <h2>Market</h2>
+    <h2>Popular Stocks</h2>
     <div style="overflow-x:auto;">
     <table class="market-table">
       <thead>
@@ -67,19 +81,62 @@
     </div>
   </div>
 
+  <div class="card" style="margin-bottom:24px;">
+    <h2>Crypto {{ '🔒' if not crypto_unlocked }}</h2>
+    {% if crypto_unlocked %}
+    <div style="overflow-x:auto;">
+    <table class="market-table">
+      <thead>
+        <tr><th>Crypto</th><th>Price</th><th>Change</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for q in crypto_quotes %}
+        <tr class="row-clickable" data-chart-row data-symbol="{{ q.symbol }}" data-name="{{ q.name }}" data-price="{{ q.price }}" data-crypto="true">
+          <td>
+            <span class="{{ 'live-dot' if q.live else 'live-dot sim-dot' }}" title="{{ 'Live price' if q.live else 'Simulated price' }}"></span>
+            <span class="sym">{{ q.symbol }}</span> <span class="sym-name">{{ q.name }}</span>
+          </td>
+          <td>${{ "%.6f"|format(q.price) if q.price < 1 else "%.2f"|format(q.price) }}</td>
+          <td class="{{ 'price-up' if q.percent_change >= 0 else 'price-down' }}">
+            {{ '+' if q.percent_change >= 0 else '' }}{{ "%.2f"|format(q.percent_change) }}%
+          </td>
+          <td>
+            <button class="trade-btn" data-trade="buy" data-symbol="{{ q.symbol }}" data-name="{{ q.name }}"
+              data-price="{{ q.price }}" data-cash="{{ portfolio.cash }}" data-crypto="true">Buy</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state crypto-locked">
+      <span class="big-emoji">🔒</span>
+      <p>Crypto trading unlocks at <strong>Level {{ crypto_unlock_level }}</strong>.</p>
+      <div class="progress-track" style="max-width:320px; margin:14px auto;">
+        <div class="progress-fill" data-pct="{{ info.progress_pct if info.current_level == crypto_unlock_level - 1 else (100 if info.current_level >= crypto_unlock_level else 0) }}"></div>
+      </div>
+      <p class="muted" style="margin:0;">You're Level {{ info.current_level }} now — keep growing your portfolio to unlock Bitcoin, Ethereum, and more.</p>
+    </div>
+    {% endif %}
+  </div>
+
   <div class="card">
     <h2>Your Holdings</h2>
     {% if holdings %}
     <div style="overflow-x:auto;">
     <table class="market-table">
       <thead>
-        <tr><th>Stock</th><th>Qty</th><th>Avg Cost</th><th>Price</th><th>Value</th><th>Gain/Loss</th><th></th></tr>
+        <tr><th>Asset</th><th>Qty</th><th>Avg Cost</th><th>Price</th><th>Value</th><th>Gain/Loss</th><th></th></tr>
       </thead>
       <tbody>
         {% for h in holdings %}
-        <tr class="row-clickable" data-chart-row data-symbol="{{ h.symbol }}" data-name="{{ h.name }}" data-price="{{ h.current_price }}">
-          <td><span class="sym">{{ h.symbol }}</span> <span class="sym-name">{{ h.name }}</span></td>
-          <td>{{ h.quantity|round(4)|float }}</td>
+        <tr class="row-clickable" data-chart-row data-symbol="{{ h.symbol }}" data-name="{{ h.name }}" data-price="{{ h.current_price }}" data-crypto="{{ 'true' if h.is_crypto else 'false' }}">
+          <td>
+            <span class="sym">{{ h.symbol }}</span> <span class="sym-name">{{ h.name }}</span>
+            {% if h.is_crypto %}<span class="tag" style="margin-left:6px;">Crypto</span>{% endif %}
+          </td>
+          <td>{{ h.quantity|round(6)|float }}</td>
           <td>${{ "%.2f"|format(h.avg_cost) }}</td>
           <td>${{ "%.2f"|format(h.current_price) }}</td>
           <td>${{ "%.2f"|format(h.market_value) }}</td>
@@ -88,7 +145,7 @@
           </td>
           <td>
             <button class="trade-btn" data-trade="sell" data-symbol="{{ h.symbol }}" data-name="{{ h.name }}"
-              data-price="{{ h.current_price }}" data-owned="{{ h.quantity|round(4)|float }}">Sell</button>
+              data-price="{{ h.current_price }}" data-owned="{{ h.quantity|round(6)|float }}" data-crypto="{{ 'true' if h.is_crypto else 'false' }}">Sell</button>
           </td>
         </tr>
         {% endfor %}
@@ -98,7 +155,7 @@
     {% else %}
     <div class="empty-state">
       <span class="big-emoji">📊</span>
-      You don't own any stocks yet. Click "Buy" on any stock above to place your first practice trade!
+      You don't own anything yet. Search above or click "Buy" on any stock to place your first practice trade!
     </div>
     {% endif %}
   </div>
@@ -115,9 +172,9 @@
       <input type="hidden" name="symbol" id="tradeSymbol">
       <input type="hidden" id="tradeSide">
       <div class="field">
-        <label for="tradeQty">Quantity (shares)</label>
+        <label for="tradeQty" id="tradeQtyLabel">Quantity (shares)</label>
         <input type="number" id="tradeQty" name="quantity" min="1" step="1" value="1" required>
-        <div class="qty-buttons">
+        <div class="qty-buttons" id="qtyButtons">
           <button type="button" data-delta="-5">-5</button>
           <button type="button" data-delta="-1">-1</button>
           <button type="button" data-delta="1">+1</button>
