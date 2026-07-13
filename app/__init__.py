@@ -24,11 +24,13 @@ def create_app(config_class=Config):
     from app.auth.routes import auth_bp
     from app.learning.routes import learning_bp
     from app.practice.routes import practice_bp
+    from app.admin.routes import admin_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(learning_bp, url_prefix="/learning")
     app.register_blueprint(practice_bp, url_prefix="/practice")
+    app.register_blueprint(admin_bp, url_prefix="/admin")
 
     from app.practice.leveling import level_info_and_flash
 
@@ -42,5 +44,21 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        _run_light_migrations()
 
     return app
+
+
+def _run_light_migrations():
+    """This app has no formal migration system (db.create_all() only creates
+    missing tables, not new columns on existing ones), so new columns are
+    added here in a small, idempotent, cross-DB-safe way."""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+    if "user" not in inspector.get_table_names():
+        return
+    columns = {c["name"] for c in inspector.get_columns("user")}
+    if "is_admin" not in columns:
+        with db.engine.begin() as conn:
+            conn.execute(text('ALTER TABLE "user" ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE'))

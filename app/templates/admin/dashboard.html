@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — Invest Academy{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="section-head">
+    <h1>Admin Dashboard</h1>
+    <p class="muted">Signups, progress, and portfolio performance across everyone using Invest Academy.</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Signups</div>
+      <div class="stat-value">{{ total_users }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Net Worth (all users)</div>
+      <div class="stat-value">${{ "%.2f"|format(total_net_worth) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Growth / User</div>
+      <div class="stat-value {{ 'up' if avg_growth >= 0 else 'down' }}">
+        {{ '+' if avg_growth >= 0 else '' }}${{ "%.2f"|format(avg_growth) }}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Learning Progress</div>
+      <div class="stat-value">{{ avg_learning_pct }}%</div>
+    </div>
+  </div>
+
+  <div class="stat-grid" style="margin-top:-10px;">
+    <div class="stat-card">
+      <div class="stat-label">Total Trades</div>
+      <div class="stat-value">{{ total_trades }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Buys</div>
+      <div class="stat-value">{{ buy_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Sells</div>
+      <div class="stat-value">{{ sell_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Growth (all users)</div>
+      <div class="stat-value {{ 'up' if total_growth >= 0 else 'down' }}">
+        {{ '+' if total_growth >= 0 else '' }}${{ "%.2f"|format(total_growth) }}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:6px;">
+    <div class="card">
+      <h2>Signups Over Time</h2>
+      {% if signup_series %}
+      <div class="chart-wrap" style="height:260px;">
+        <canvas id="signupChart"></canvas>
+      </div>
+      {% else %}
+      <div class="empty-state"><span class="big-emoji">📈</span>No signups yet.</div>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2>Users by Level</h2>
+      {% if level_chart %}
+      <div class="chart-wrap" style="height:260px;">
+        <canvas id="levelChart"></canvas>
+      </div>
+      {% else %}
+      <div class="empty-state"><span class="big-emoji">🏅</span>No level data yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:22px;">
+    <h2>Top Performers</h2>
+    {% if top_performers %}
+    <div style="overflow-x:auto;">
+    <table class="market-table">
+      <thead>
+        <tr><th>User</th><th>Level</th><th>Net Worth</th><th>Growth</th><th>Learning</th></tr>
+      </thead>
+      <tbody>
+        {% for p in top_performers %}
+        <tr>
+          <td class="sym">{{ p.username }}</td>
+          <td>{{ p.icon }} {{ p.level }}</td>
+          <td>${{ "%.2f"|format(p.net_worth) }}</td>
+          <td class="{{ 'price-up' if p.growth >= 0 else 'price-down' }}">
+            {{ '+' if p.growth >= 0 else '' }}${{ "%.2f"|format(p.growth) }}
+          </td>
+          <td>{{ p.learning_pct }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><span class="big-emoji">👤</span>No users yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="card" style="margin-top:22px;">
+    <h2>Recent Signups</h2>
+    {% if recent_signups %}
+    <div style="overflow-x:auto;">
+    <table class="market-table">
+      <thead>
+        <tr><th>User</th><th>Joined</th><th>Level</th><th>Net Worth</th></tr>
+      </thead>
+      <tbody>
+        {% for p in recent_signups %}
+        <tr>
+          <td class="sym">{{ p.username }}</td>
+          <td>{{ p.joined.strftime('%b %d, %Y') if p.joined else '—' }}</td>
+          <td>{{ p.icon }} {{ p.level }}</td>
+          <td>${{ "%.2f"|format(p.net_worth) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><span class="big-emoji">👤</span>No users yet.</div>
+    {% endif %}
+  </div>
+</div>
+
+{% if signup_series or level_chart %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const gridColor = '#eef1f5';
+  const inkMuted = '#5b6b7f';
+
+  {% if signup_series %}
+  new Chart(document.getElementById('signupChart'), {
+    type: 'line',
+    data: {
+      labels: {{ signup_series | map(attribute='day') | list | tojson }},
+      datasets: [{
+        label: 'Total signups',
+        data: {{ signup_series | map(attribute='cumulative') | list | tojson }},
+        borderColor: '#16a34a',
+        backgroundColor: 'rgba(22,163,74,0.08)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#16a34a',
+        tension: 0.2,
+        fill: true,
+        stepped: 'before',
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: inkMuted, maxTicksLimit: 7 }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: inkMuted, precision: 0 }, grid: { color: gridColor } },
+      },
+    },
+  });
+  {% endif %}
+
+  {% if level_chart %}
+  new Chart(document.getElementById('levelChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ level_chart | map(attribute='label') | list | tojson }},
+      datasets: [{
+        label: 'Users',
+        data: {{ level_chart | map(attribute='count') | list | tojson }},
+        backgroundColor: '#16a34a',
+        borderRadius: 4,
+        maxBarThickness: 48,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: inkMuted }, grid: { display: false } },
+        y: { beginAtZero: true, ticks: { color: inkMuted, precision: 0 }, grid: { color: gridColor } },
+      },
+    },
+  });
+  {% endif %}
+});
+</script>
+{% endif %}
+{% endblock %}
