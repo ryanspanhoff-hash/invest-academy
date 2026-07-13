@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Learning Center — Invest Academy{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="section-head">
+    <h1>Learning Center</h1>
+    <p class="muted">Videos, articles, and tips from famous investors — organized simply so you always know what's next.</p>
+  </div>
+
+  <div class="learning-progress-bar">
+    <div class="progress-track">
+      <div class="progress-fill" id="learningProgressFill" data-pct="{{ pct }}" data-done="{{ done }}" data-total="{{ total }}"></div>
+    </div>
+    <span class="muted" id="learningProgressLabel" style="white-space:nowrap; font-size:.85rem;">{{ done }} / {{ total }} completed</span>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="videos">🎬 Videos</button>
+    <button class="tab-btn" data-tab="articles">📚 Articles</button>
+    <button class="tab-btn" data-tab="tips">💬 Investor Tips</button>
+  </div>
+
+  <div class="tab-panel active" id="videos">
+    <div class="grid grid-3">
+      {% for v in videos %}
+      <div class="content-card">
+        <div class="content-thumb">
+          <iframe src="https://www.youtube-nocookie.com/embed/{{ v.youtube_id }}" title="{{ v.title }}" loading="lazy" allowfullscreen></iframe>
+        </div>
+        <div class="content-body">
+          <div class="content-tags">
+            <span class="tag">{{ v.level }}</span>
+            <span class="tag tag-time">{{ v.duration }}</span>
+          </div>
+          <h3>{{ v.title }}</h3>
+          <p>{{ v.description }}</p>
+          <div class="complete-row">
+            {% if v.id in completed %}
+              <span class="complete-check">✓ Completed</span>
+            {% else %}
+              <button class="btn btn-secondary btn-small" data-complete-id="{{ v.id }}">Mark as watched</button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="tab-panel" id="articles">
+    <div class="grid grid-3">
+      {% for a in articles %}
+      <div class="content-card">
+        <div class="content-body">
+          <div class="content-tags">
+            <span class="tag">{{ a.level }}</span>
+            <span class="tag tag-time">{{ a.read_time }}</span>
+          </div>
+          <h3>{{ a.title }}</h3>
+          <p>{{ a.summary }}</p>
+          <div class="complete-row">
+            <a href="{{ url_for('learning.article', slug=a.slug) }}" class="btn btn-secondary btn-small">Read article</a>
+            {% if a.id in completed %}<span class="complete-check">✓ Read</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tips">
+    <div class="grid grid-2">
+      {% for t in tips %}
+      <div class="tip-card">
+        <div class="tip-quote">“{{ t.quote }}”</div>
+        <div class="tip-investor">— {{ t.investor }}</div>
+        <div class="tip-note">{{ t.note }}</div>
+        <div class="complete-row">
+          {% if t.id in completed %}
+            <span class="complete-check">✓ Read</span>
+          {% else %}
+            <button class="btn btn-secondary btn-small" data-complete-id="{{ t.id }}">Mark as read</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

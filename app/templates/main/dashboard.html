@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Invest Academy{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="section-head">
+    <h1>Welcome back, {{ current_user.username }} 👋</h1>
+    <p class="muted">Here's where your practice portfolio and learning stand today.</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Net Worth</div>
+      <div class="stat-value">${{ "%.2f"|format(info.net_worth) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Growth</div>
+      <div class="stat-value {{ 'up' if info.growth >= 0 else 'down' }}">
+        {{ '+' if info.growth >= 0 else '' }}${{ "%.2f"|format(info.growth) }}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Cash Available</div>
+      <div class="stat-value">${{ "%.2f"|format(portfolio.cash) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Current Level</div>
+      <div class="stat-value">{{ info.current_icon }} {{ info.current_level }}</div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="card">
+      <h2>Continue learning</h2>
+      <div class="learning-progress-bar">
+        <div class="progress-track"><div class="progress-fill" data-pct="{{ learning_pct }}"></div></div>
+        <span class="muted" style="white-space:nowrap; font-size:.85rem;">{{ learning_done }} / {{ learning_total }}</span>
+      </div>
+      <p class="muted">Videos, articles, and tips from famous investors — all organized in one place.</p>
+      <a href="{{ url_for('learning.home') }}" class="btn btn-primary">Go to Learning Center</a>
+    </div>
+
+    <div class="card">
+      <h2>Market movers</h2>
+      <p class="muted" style="margin-top:-8px;">Today's biggest movers in the practice market.</p>
+      {% for q in top_movers %}
+      <div class="mock-row">
+        <span class="sym">{{ q.symbol }}</span>
+        <span class="{{ 'price-up' if q.percent_change >= 0 else 'price-down' }}">
+          {{ '+' if q.percent_change >= 0 else '' }}{{ "%.2f"|format(q.percent_change) }}%
+        </span>
+      </div>
+      {% endfor %}
+      <a href="{{ url_for('practice.home') }}" class="btn btn-secondary" style="margin-top:14px;">Go to Practice Trading</a>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:22px;">
+    <div class="card">
+      <h2>Your progress &amp; badges</h2>
+      <p class="muted" style="margin-top:-8px;">You've earned {{ info.highest_level }} badge{{ 's' if info.highest_level != 1 }} so far.
+        Next up: {{ info.next_icon }} {{ info.next_badge }} — ${{ "%.2f"|format(info.amount_to_next) }} to go.</p>
+      <a href="{{ url_for('practice.progress') }}" class="btn btn-secondary">View Full Progress</a>
+    </div>
+    <div class="card">
+      <h2>Your holdings</h2>
+      <p class="muted" style="margin-top:-8px;">
+        {% if holdings_count %}
+          You currently hold {{ holdings_count }} stock{{ 's' if holdings_count != 1 }}.
+        {% else %}
+          You haven't bought any stocks yet — head to Practice to place your first trade.
+        {% endif %}
+      </p>
+      <a href="{{ url_for('practice.history') }}" class="btn btn-secondary">View Trade History</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

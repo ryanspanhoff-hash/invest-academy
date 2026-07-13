@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Practice Trading — Invest Academy{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="section-head">
+    <h1>Practice Trading</h1>
+    <p class="muted">Trade with $1,000 in fake money. Every trade uses {{ 'live' if has_api_key else 'simulated' }} stock prices — zero real risk.</p>
+  </div>
+
+  {% if not has_api_key %}
+  <div class="banner">
+    ℹ️ Live market data isn't connected yet, so prices are being simulated for practice.
+    Add a free <strong>FINNHUB_API_KEY</strong> to your <code>.env</code> file for real, live quotes.
+  </div>
+  {% endif %}
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Net Worth</div>
+      <div class="stat-value">${{ "%.2f"|format(info.net_worth) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Cash Available</div>
+      <div class="stat-value">${{ "%.2f"|format(portfolio.cash) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Growth</div>
+      <div class="stat-value {{ 'up' if info.growth >= 0 else 'down' }}">
+        {{ '+' if info.growth >= 0 else '' }}${{ "%.2f"|format(info.growth) }}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Level</div>
+      <div class="stat-value">{{ info.current_icon }} {{ info.current_level }}</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px;">
+    <h2>Market</h2>
+    <div style="overflow-x:auto;">
+    <table class="market-table">
+      <thead>
+        <tr><th>Stock</th><th>Price</th><th>Change</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for q in quotes %}
+        <tr>
+          <td>
+            <span class="{{ 'live-dot' if q.live else 'live-dot sim-dot' }}" title="{{ 'Live price' if q.live else 'Simulated price' }}"></span>
+            <span class="sym">{{ q.symbol }}</span> <span class="sym-name">{{ q.name }}</span>
+          </td>
+          <td>${{ "%.2f"|format(q.price) }}</td>
+          <td class="{{ 'price-up' if q.percent_change >= 0 else 'price-down' }}">
+            {{ '+' if q.percent_change >= 0 else '' }}{{ "%.2f"|format(q.percent_change) }}%
+          </td>
+          <td>
+            <button class="trade-btn" data-trade="buy" data-symbol="{{ q.symbol }}" data-name="{{ q.name }}"
+              data-price="{{ q.price }}" data-cash="{{ portfolio.cash }}">Buy</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Your Holdings</h2>
+    {% if holdings %}
+    <div style="overflow-x:auto;">
+    <table class="market-table">
+      <thead>
+        <tr><th>Stock</th><th>Qty</th><th>Avg Cost</th><th>Price</th><th>Value</th><th>Gain/Loss</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for h in holdings %}
+        <tr>
+          <td><span class="sym">{{ h.symbol }}</span> <span class="sym-name">{{ h.name }}</span></td>
+          <td>{{ h.quantity|round(4)|float }}</td>
+          <td>${{ "%.2f"|format(h.avg_cost) }}</td>
+          <td>${{ "%.2f"|format(h.current_price) }}</td>
+          <td>${{ "%.2f"|format(h.market_value) }}</td>
+          <td class="{{ 'price-up' if h.gain >= 0 else 'price-down' }}">
+            {{ '+' if h.gain >= 0 else '' }}${{ "%.2f"|format(h.gain) }} ({{ "%.2f"|format(h.gain_pct) }}%)
+          </td>
+          <td>
+            <button class="trade-btn" data-trade="sell" data-symbol="{{ h.symbol }}" data-name="{{ h.name }}"
+              data-price="{{ h.current_price }}" data-owned="{{ h.quantity|round(4)|float }}">Sell</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <span class="big-emoji">📊</span>
+      You don't own any stocks yet. Click "Buy" on any stock above to place your first practice trade!
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="modal-overlay" id="tradeModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="tradeTitle">Buy</h3>
+      <button class="modal-close" aria-label="Close">&times;</button>
+    </div>
+    <p class="modal-price" id="tradePrice"></p>
+    <form id="tradeForm" method="POST" data-buy-url="{{ url_for('practice.buy') }}" data-sell-url="{{ url_for('practice.sell') }}">
+      <input type="hidden" name="symbol" id="tradeSymbol">
+      <input type="hidden" id="tradeSide">
+      <div class="field">
+        <label for="tradeQty">Quantity (shares)</label>
+        <input type="number" id="tradeQty" name="quantity" min="1" step="1" value="1" required>
+        <div class="qty-buttons">
+          <button type="button" data-delta="-5">-5</button>
+          <button type="button" data-delta="-1">-1</button>
+          <button type="button" data-delta="1">+1</button>
+          <button type="button" data-delta="5">+5</button>
+        </div>
+      </div>
+      <p class="modal-est" id="tradeEstimate"></p>
+      <p class="modal-est" id="tradeMaxHint"></p>
+      <button type="submit" class="btn btn-primary btn-block" id="tradeSubmit" style="margin-top:14px;">Confirm</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

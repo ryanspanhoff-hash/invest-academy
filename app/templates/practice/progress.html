@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Your Progress — Invest Academy{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="section-head">
+    <h1>Your Progress</h1>
+    <p class="muted">Grow your practice portfolio by $5,000 to level up and earn a new badge.</p>
+  </div>
+
+  <div class="card level-card" style="max-width:520px; margin:0 auto 28px;">
+    <div class="level-badge-icon">{{ info.current_icon }}</div>
+    <h2 style="margin-bottom:2px;">Level {{ info.current_level }} — {{ info.current_badge }}</h2>
+    <p class="muted">Net worth: ${{ "%.2f"|format(info.net_worth) }}</p>
+
+    <div class="progress-track">
+      <div class="progress-fill" data-pct="{{ info.progress_pct }}"></div>
+    </div>
+    <div class="progress-meta">
+      <span>Level {{ info.current_level }}</span>
+      <span>${{ "%.2f"|format(info.amount_to_next) }} to {{ info.next_icon }} Level {{ info.next_level }}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Badge Case</h2>
+    <p class="muted" style="margin-top:-8px;">Badges you've earned stay in your case forever — even if your portfolio dips.</p>
+    <div class="badge-case">
+      {% for lvl in range(1, 11) %}
+        {% set earned = lvl <= info.highest_level %}
+        <div class="badge-item {{ '' if earned else 'locked' }}">
+          <span class="icon">
+            {% if earned %}
+              {{ info.earned_badges[lvl-1].icon if lvl-1 < info.earned_badges|length else '👑' }}
+            {% else %}🔒{% endif %}
+          </span>
+          <span class="name">Lvl {{ lvl }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:22px;">
+    <a href="{{ url_for('practice.home') }}" class="card" style="text-align:center;">
+      <h3 style="margin-bottom:4px;">💵 Keep Trading</h3>
+      <p class="muted" style="margin:0;">Head back to the market to grow your portfolio.</p>
+    </a>
+    <a href="{{ url_for('learning.home') }}" class="card" style="text-align:center;">
+      <h3 style="margin-bottom:4px;">📚 Keep Learning</h3>
+      <p class="muted" style="margin:0;">Sharpen your strategy with more lessons.</p>
+    </a>
+  </div>
+</div>
+{% endblock %}

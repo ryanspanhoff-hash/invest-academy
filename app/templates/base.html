@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Invest Academy{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📈</text></svg>">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-row">
+    <a class="brand" href="{{ url_for('main.index') }}">
+      <span class="brand-mark">📈</span> Invest Academy
+    </a>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="site-nav" id="siteNav">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('main.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}">Dashboard</a>
+        <a href="{{ url_for('learning.home') }}" class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('learning.') }}">Learn</a>
+        <a href="{{ url_for('practice.home') }}" class="nav-link {{ 'active' if request.endpoint == 'practice.home' }}">Practice</a>
+        <a href="{{ url_for('practice.progress') }}" class="nav-link {{ 'active' if request.endpoint == 'practice.progress' }}">Progress</a>
+        <a href="{{ url_for('practice.history') }}" class="nav-link {{ 'active' if request.endpoint == 'practice.history' }}">History</a>
+
+        {% if nav_level_info %}
+        <a href="{{ url_for('practice.progress') }}" class="level-chip" title="{{ nav_level_info.current_badge }}">
+          <span class="level-chip-icon">{{ nav_level_info.current_icon }}</span>
+          <span>Lvl {{ nav_level_info.current_level }}</span>
+        </a>
+        {% endif %}
+
+        <a href="{{ url_for('auth.logout') }}" class="nav-link nav-link-muted">Log out</a>
+      {% else %}
+        <a href="{{ url_for('main.index') }}#learn" class="nav-link">Learn</a>
+        <a href="{{ url_for('auth.login') }}" class="nav-link">Log in</a>
+        <a href="{{ url_for('auth.signup') }}" class="btn btn-primary btn-small">Get Started</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+<div class="flash-stack" id="flashStack">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash flash-{{ category }}" data-category="{{ category }}">
+        <span class="flash-text">{{ message }}</span>
+        <button class="flash-close" aria-label="Dismiss">&times;</button>
+      </div>
+    {% endfor %}
+  {% endwith %}
+</div>
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-row">
+    <span>📈 Invest Academy — practice investing with $0 real risk.</span>
+    <span class="footer-muted">All trading is simulated. Not real financial advice.</span>
+  </div>
+</footer>
+
+<div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

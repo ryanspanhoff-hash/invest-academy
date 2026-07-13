@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} — Invest Academy{% endblock %}
+{% block content %}
+<div class="container section" style="max-width: 720px;">
+  <a href="{{ url_for('learning.home') }}#articles" class="btn btn-ghost btn-small" style="padding-left:0;">&larr; Back to Learning Center</a>
+
+  <div class="content-tags" style="margin-top:18px;">
+    <span class="tag">{{ article.level }}</span>
+    <span class="tag tag-time">{{ article.read_time }}</span>
+  </div>
+  <h1>{{ article.title }}</h1>
+
+  <div class="article-body">
+    {% for para in article.body %}
+    <p>{{ para }}</p>
+    {% endfor %}
+  </div>
+
+  <div class="complete-row" style="margin-top:10px;">
+    {% if article.id in completed %}
+      <span class="complete-check">✓ You've completed this article</span>
+    {% else %}
+      <button class="btn btn-primary" data-complete-id="{{ article.id }}">Mark as read</button>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Invest Academy — Learn to Invest, Risk-Free{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div class="container hero-row">
+    <div class="hero-copy">
+      <span class="hero-badge">🎮 Learn by doing, not by risking real money</span>
+      <h1>Learn to invest.<br>Practice with $1,000 in fake money.</h1>
+      <p class="lead">Bite-sized lessons from real investing wisdom, plus a full practice trading
+        simulator so you can build confidence before you ever risk a real dollar.</p>
+      <div class="hero-cta">
+        <a href="{{ url_for('auth.signup') }}" class="btn btn-primary">Start Learning — It's Free</a>
+        <a href="#how" class="btn btn-secondary">See How It Works</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="mock-card">
+        <div class="mock-row"><strong>Portfolio Value</strong><span class="mock-up">$6,420.18</span></div>
+        <div class="mock-row"><span>AAPL</span><span class="mock-up">+4.2%</span></div>
+        <div class="mock-row"><span>TSLA</span><span class="mock-down">-1.8%</span></div>
+        <div class="mock-row"><span>Level</span><span>🧱 3 · Portfolio Builder</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section container" id="learn">
+  <div class="section-head" style="text-align:center;">
+    <span class="eyebrow">What you get</span>
+    <h2>Everything you need to start investing with confidence</h2>
+  </div>
+  <div class="grid grid-3">
+    <div class="feature-card">
+      <div class="feature-icon">🎬</div>
+      <h3>Bite-Sized Videos</h3>
+      <p class="muted">Short, clear videos that explain the basics without the jargon.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📚</div>
+      <h3>Simple Articles</h3>
+      <p class="muted">Quick reads that break down concepts like diversification and risk.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💬</div>
+      <h3>Tips from Legends</h3>
+      <p class="muted">Wisdom from investors like Warren Buffett and Peter Lynch, explained simply.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💵</div>
+      <h3>$1,000 Practice Fund</h3>
+      <p class="muted">Trade real stock prices with fake money — no risk, all the learning.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏅</div>
+      <h3>Levels &amp; Badges</h3>
+      <p class="muted">Grow your fake portfolio by $5,000 to level up and unlock new badges.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>Your Progress, Saved</h3>
+      <p class="muted">Create a free account and pick up exactly where you left off.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section container" id="how">
+  <div class="section-head" style="text-align:center;">
+    <span class="eyebrow">Getting started</span>
+    <h2>How Invest Academy works</h2>
+  </div>
+  <div class="card steps" style="max-width:640px; margin:0 auto;">
+    <div class="step-item">
+      <div class="step-num">1</div>
+      <div><h3 style="margin-bottom:4px;">Create your free account</h3><p class="muted" style="margin:0;">Sign up in seconds — your progress and portfolio are saved automatically.</p></div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">2</div>
+      <div><h3 style="margin-bottom:4px;">Learn the basics</h3><p class="muted" style="margin:0;">Watch videos, read short articles, and soak up tips from famous investors.</p></div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">3</div>
+      <div><h3 style="margin-bottom:4px;">Practice with $1,000 fake money</h3><p class="muted" style="margin:0;">Buy and sell real, live-tracked stocks — with zero real-world risk.</p></div>
+    </div>
+    <div class="step-item">
+      <div class="step-num">4</div>
+      <div><h3 style="margin-bottom:4px;">Level up as you grow</h3><p class="muted" style="margin:0;">Every $5,000 in growth earns you a new level and a badge for your case.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="cta-band">
+    <h2>Ready to start your investing journey?</h2>
+    <p>It's free, it's fun, and it's completely risk-free.</p>
+    <a href="{{ url_for('auth.signup') }}" class="btn" style="background:#fff; color: var(--green);">Create My Free Account</a>
+  </div>
+</section>
+
+{% endblock %}

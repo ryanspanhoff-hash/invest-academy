@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Sign Up — Invest Academy{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="card auth-card">
+    <h1>Create your account</h1>
+    <p class="muted" style="margin-bottom:22px;">Start with $1,000 in practice money — free forever.</p>
+    <form method="POST" action="{{ url_for('auth.signup') }}">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" value="{{ username }}" required minlength="3" maxlength="32" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ email }}" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required minlength="6" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label for="confirm">Confirm password</label>
+        <input type="password" id="confirm" name="confirm" required minlength="6" autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Create Account &amp; Start Learning</button>
+    </form>
+    <p class="auth-foot">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+  </div>
+</div>
+{% endblock %}

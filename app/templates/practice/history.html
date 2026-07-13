@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Trade History — Invest Academy{% endblock %}
+{% block content %}
+<div class="container section">
+  <div class="section-head">
+    <h1>Trade History</h1>
+    <p class="muted">Every practice trade you've made, most recent first.</p>
+  </div>
+
+  <div class="card">
+    {% if transactions %}
+    <div style="overflow-x:auto;">
+    <table class="market-table history-table">
+      <thead>
+        <tr><th>Date</th><th>Stock</th><th>Side</th><th>Qty</th><th>Price</th><th>Total</th><th>Realized P/L</th></tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr>
+          <td>{{ t.timestamp.strftime('%b %d, %Y %I:%M %p') }}</td>
+          <td class="sym">{{ t.symbol }}</td>
+          <td class="{{ 'buy' if t.side == 'BUY' else 'sell' }}">{{ t.side }}</td>
+          <td>{{ t.quantity|round(4)|float }}</td>
+          <td>${{ "%.2f"|format(t.price) }}</td>
+          <td>${{ "%.2f"|format(t.total) }}</td>
+          <td>
+            {% if t.side == 'SELL' %}
+              <span class="{{ 'price-up' if t.realized_pl >= 0 else 'price-down' }}">
+                {{ '+' if t.realized_pl >= 0 else '' }}${{ "%.2f"|format(t.realized_pl) }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <span class="big-emoji">🧾</span>
+      No trades yet. Head to <a href="{{ url_for('practice.home') }}">Practice Trading</a> to make your first one.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
