@@ -1,6 +1,7 @@
 import hashlib
 import math
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from flask import current_app
@@ -109,7 +110,20 @@ def get_quote(symbol: str) -> dict:
 
 
 def get_all_quotes() -> list:
-    return [get_quote(s["symbol"]) for s in STOCKS]
+    """Fetches all quotes concurrently. Sequentially, 24 symbols each with a
+    multi-second network timeout could take well over a minute in the worst
+    case (all cache misses, slow upstream) — long enough to trip a request
+    timeout and 502 every visitor at once. Threads keep the worst case near
+    a single request's timeout instead of the sum of all of them."""
+    app = current_app._get_current_object()
+
+    def _fetch(symbol):
+        with app.app_context():
+            return get_quote(symbol)
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        quotes = list(executor.map(_fetch, [s["symbol"] for s in STOCKS]))
+    return quotes
 
 
 def portfolio_net_worth(portfolio) -> float:

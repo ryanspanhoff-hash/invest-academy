@@ -1,18 +1,25 @@
 import os
-from flask import Flask
+from flask import Flask, render_template
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import Config
-from app.extensions import db, login_manager
+from app.extensions import db, login_manager, limiter
 
 
 def create_app(config_class=Config):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
 
+    # Render sits behind a reverse proxy: without this, request.remote_addr
+    # (and anything keyed on it, like rate limiting) sees the proxy's IP for
+    # every visitor instead of each person's real one.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     os.makedirs(app.instance_path, exist_ok=True)
 
     db.init_app(app)
     login_manager.init_app(app)
+    limiter.init_app(app)
 
     from app.models import User
 
@@ -41,6 +48,31 @@ def create_app(config_class=Config):
         if current_user.is_authenticated and current_user.portfolio:
             ctx["nav_level_info"] = level_info_and_flash(current_user.portfolio)
         return ctx
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template(
+            "errors/error.html", code=404, emoji="🔍",
+            heading="Page not found",
+            message="That page doesn't exist — it may have moved, or the link might be off.",
+        ), 404
+
+    @app.errorhandler(429)
+    def rate_limited(e):
+        return render_template(
+            "errors/error.html", code=429, emoji="⏳",
+            heading="Slow down a little",
+            message="You've hit a rate limit meant to keep the site safe from abuse. Try again in a bit.",
+        ), 429
+
+    @app.errorhandler(500)
+    def server_error(e):
+        db.session.rollback()
+        return render_template(
+            "errors/error.html", code=500, emoji="⚠️",
+            heading="Something went wrong",
+            message="That's on us, not you — please try again in a moment.",
+        ), 500
 
     with app.app_context():
         db.create_all()

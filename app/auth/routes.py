@@ -3,7 +3,7 @@ import re
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_user, logout_user, login_required, current_user
 
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models import User, Portfolio
 
 auth_bp = Blueprint("auth", __name__, template_folder="../templates/auth")
@@ -12,6 +12,7 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 @auth_bp.route("/signup", methods=["GET", "POST"])
+@limiter.limit("10 per hour", methods=["POST"])
 def signup():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
@@ -57,6 +58,7 @@ def signup():
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("20 per hour", methods=["POST"])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
