@@ -22,9 +22,6 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
 
-    STARTING_BALANCE = 1000.0
-    LEVEL_STEP = 5000.0
-
     # Cookie hardening: in-app browsers (Snapchat, Instagram, etc.) are stricter about
     # dropping non-persistent, non-SameSite-explicit cookies than a normal browser.
     # Secure cookies require HTTPS, which only Render's env (not local dev over

@@ -1,16 +1,29 @@
-import math
-
 from flask import flash
 
 from app.extensions import db
 
 STARTING_BALANCE = 1000.0
-LEVEL_STEP = 5000.0
 CRYPTO_UNLOCK_LEVEL = 5
+
+
+def level_step(level: int) -> float:
+    """Dollar growth needed to go from `level` to `level + 1`: 100, 150, 200, 250, …"""
+    return 100.0 + (level - 1) * 50.0
+
+
+def _level_breakdown(growth: float):
+    """Walks the increasing per-level thresholds to find (level, growth_at_level_floor)."""
+    level = 1
+    floor_growth = 0.0
+    while growth - floor_growth >= level_step(level):
+        floor_growth += level_step(level)
+        level += 1
+    return level, floor_growth
 
 
 def crypto_unlocked(portfolio) -> bool:
     return portfolio.highest_level >= CRYPTO_UNLOCK_LEVEL
+
 
 BADGE_NAMES = {
     1: "Rookie Investor",
@@ -52,10 +65,9 @@ def badge_icon(level: int) -> str:
 
 
 def level_for_net_worth(net_worth: float) -> int:
-    growth = net_worth - STARTING_BALANCE
-    if growth < 0:
-        growth = 0
-    return 1 + int(math.floor(growth / LEVEL_STEP))
+    growth = max(0.0, net_worth - STARTING_BALANCE)
+    level, _ = _level_breakdown(growth)
+    return level
 
 
 def level_info(portfolio, net_worth: float = None):
@@ -65,18 +77,18 @@ def level_info(portfolio, net_worth: float = None):
         net_worth = portfolio_net_worth(portfolio)
 
     growth = max(0.0, net_worth - STARTING_BALANCE)
-    current_level = level_for_net_worth(net_worth)
+    current_level, level_floor_growth = _level_breakdown(growth)
 
     if current_level > portfolio.highest_level:
         portfolio.highest_level = current_level
         db.session.commit()
 
-    level_floor_growth = (current_level - 1) * LEVEL_STEP
+    current_step = level_step(current_level)
     progress_into_level = growth - level_floor_growth
-    progress_pct = min(100.0, max(0.0, (progress_into_level / LEVEL_STEP) * 100))
+    progress_pct = min(100.0, max(0.0, (progress_into_level / current_step) * 100))
 
     next_level = current_level + 1
-    amount_to_next = max(0.0, LEVEL_STEP - progress_into_level)
+    amount_to_next = max(0.0, current_step - progress_into_level)
 
     earned_badges = [
         {"level": lvl, "name": badge_name(lvl), "icon": badge_icon(lvl)}
