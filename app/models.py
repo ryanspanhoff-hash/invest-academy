@@ -31,6 +31,7 @@ class Portfolio(db.Model):
     starting_balance = db.Column(db.Float, default=1000.0, nullable=False)
     highest_level = db.Column(db.Integer, default=1, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    level_started_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     holdings = db.relationship("Holding", backref="portfolio", cascade="all, delete-orphan")
     transactions = db.relationship(

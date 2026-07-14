@@ -1,4 +1,12 @@
-document.addEventListener('DOMContentLoaded', () => {
+function whenDomReady(fn) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fn);
+  } else {
+    fn();
+  }
+}
+
+whenDomReady(() => {
   initNavToggle();
   initFlashes();
   initTabs();
@@ -7,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCompleteButtons();
   initChartModal();
   initSymbolSearch();
+  initLevelUpCelebration();
 });
 
 function formatPrice(price) {
@@ -34,12 +43,7 @@ function initFlashes() {
   flashes.forEach(flash => {
     const close = flash.querySelector('.flash-close');
     if (close) close.addEventListener('click', () => dismissFlash(flash));
-    if (flash.dataset.category !== 'levelup') {
-      setTimeout(() => dismissFlash(flash), 5500);
-    } else {
-      launchConfetti();
-      setTimeout(() => dismissFlash(flash), 7000);
-    }
+    setTimeout(() => dismissFlash(flash), 5500);
   });
 }
 
@@ -409,6 +413,34 @@ function initSymbolSearch() {
       resultsBox.classList.add('open');
     }
   }
+}
+
+/* ---------- Level-up celebration ---------- */
+function initLevelUpCelebration() {
+  const payloadEl = document.getElementById('levelUpPayload');
+  const overlay = document.getElementById('celebrationOverlay');
+  if (!payloadEl || !overlay) return;
+
+  let data;
+  try {
+    data = JSON.parse(payloadEl.textContent);
+  } catch (e) {
+    return;
+  }
+
+  document.getElementById('celebrationIcon').textContent = data.icon;
+  document.getElementById('celebrationLevel').textContent = data.level;
+  document.getElementById('celebrationBadge').textContent = `${data.icon} ${data.name}`;
+
+  overlay.classList.add('open');
+  launchConfetti();
+  setTimeout(launchConfetti, 400);
+
+  function close() { overlay.classList.remove('open'); }
+  document.getElementById('celebrationDismiss').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  setTimeout(close, 8000);
 }
 
 /* ---------- Learning: mark complete ---------- */

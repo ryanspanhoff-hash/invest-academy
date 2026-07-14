@@ -53,12 +53,26 @@
 <div class="flash-stack" id="flashStack">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
-      <div class="flash flash-{{ category }}" data-category="{{ category }}">
-        <span class="flash-text">{{ message }}</span>
-        <button class="flash-close" aria-label="Dismiss">&times;</button>
-      </div>
+      {% if category == 'levelup' %}
+        <script type="application/json" id="levelUpPayload">{{ message | safe }}</script>
+      {% else %}
+        <div class="flash flash-{{ category }}" data-category="{{ category }}">
+          <span class="flash-text">{{ message }}</span>
+          <button class="flash-close" aria-label="Dismiss">&times;</button>
+        </div>
+      {% endif %}
     {% endfor %}
   {% endwith %}
+</div>
+
+<div class="celebration-overlay" id="celebrationOverlay">
+  <div class="celebration-box">
+    <div class="celebration-icon" id="celebrationIcon">🚀</div>
+    <div class="celebration-title">LEVEL UP!</div>
+    <p class="celebration-subtitle">You're now Level <strong id="celebrationLevel"></strong></p>
+    <p class="celebration-badge" id="celebrationBadge"></p>
+    <button class="btn btn-primary celebration-dismiss" id="celebrationDismiss">Keep Going 🚀</button>
+  </div>
 </div>
 
 <main>

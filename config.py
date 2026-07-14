@@ -21,6 +21,8 @@ class Config:
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "")
+    RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+    EMAIL_FROM = os.environ.get("EMAIL_FROM", "Invest Academy <onboarding@resend.dev>")
 
     # Cookie hardening: in-app browsers (Snapchat, Instagram, etc.) are stricter about
     # dropping non-persistent, non-SameSite-explicit cookies than a normal browser.

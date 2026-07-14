@@ -97,6 +97,15 @@ def _run_light_migrations():
             with db.engine.begin() as conn:
                 conn.execute(text('ALTER TABLE "user" ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE'))
 
+    if "portfolio" in table_names:
+        columns = {c["name"] for c in inspector.get_columns("portfolio")}
+        if "level_started_at" not in columns:
+            with db.engine.begin() as conn:
+                conn.execute(text('ALTER TABLE "portfolio" ADD COLUMN level_started_at TIMESTAMP'))
+                # Backfill with account creation time so the first recap email covers
+                # everything traded so far, rather than showing zero trades.
+                conn.execute(text('UPDATE "portfolio" SET level_started_at = created_at WHERE level_started_at IS NULL'))
+
     # Widened for crypto tickers like "BTC-USD". SQLite doesn't enforce VARCHAR
     # length at all, so there's nothing to migrate there — only Postgres needs this.
     if not is_sqlite:
